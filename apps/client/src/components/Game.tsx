@@ -11,6 +11,7 @@ const Game: React.FC = () => {
   const [room, setRoom] = useState<Room | null>(null);
   const [selectedMove, setSelectedMove] = useState<Move | null>(null);
   const [message, setMessage] = useState("");
+  const [isStartingRound, setIsStartingRound] = useState(false);
 
   useEffect(() => {
     if (!socket || !roomId) return;
@@ -31,6 +32,7 @@ const Game: React.FC = () => {
       setRoom(room);
       setSelectedMove(null);
       setMessage("");
+      setIsStartingRound(false);
     });
 
     socket.on("moveSubmitted", ({ room }) => {
@@ -48,6 +50,7 @@ const Game: React.FC = () => {
 
     socket.on("error", ({ message }) => {
       setMessage(message);
+      setIsStartingRound(false);
     });
 
     return () => {
@@ -59,10 +62,13 @@ const Game: React.FC = () => {
       socket.off("playerDisconnected");
       socket.off("error");
     };
-  }, [socket, roomId]);
+  }, [socket, roomId, room?.gamePhase]);
 
   const startRound = () => {
     if (!socket || !roomId) return;
+
+    setIsStartingRound(true);
+    setMessage("");
     socket.emit("startRound", { roomId });
   };
 
@@ -200,8 +206,8 @@ const Game: React.FC = () => {
     return (
       <div style={{ marginTop: "30px" }}>
         {canStart && (
-          <button className="btn btn-primary" onClick={startRound}>
-            Start Round
+          <button className="btn btn-primary" onClick={startRound} disabled={isStartingRound}>
+            {isStartingRound ? "Starting..." : "Start Round"}
           </button>
         )}
 
@@ -216,6 +222,16 @@ const Game: React.FC = () => {
       </div>
     );
   };
+
+  // Show loading state when starting round
+  if (isStartingRound) {
+    return (
+      <div className="game-container game-screen">
+        <h2>Starting battle arena...</h2>
+        <p className="waiting-text">🍺</p>
+      </div>
+    );
+  }
 
   if (!room) {
     return (
