@@ -3,15 +3,25 @@ import { v4 as uuidv4 } from "uuid";
 import { decideWinner } from "./game-logic";
 
 /**
+ * Generate a short, user-friendly room code
+ */
+function generateShortCode(): string {
+  return uuidv4().slice(0, 8).toUpperCase();
+}
+
+/**
  * Create a new room with default state
  */
-export function createRoom(playerId: string, playerName: string): Room {
+export function createRoom(playerId: string, playerName: string, avatar?: string): Room {
+  const roomId = uuidv4();
   const room: Room = {
-    id: uuidv4(),
+    id: roomId,
+    code: generateShortCode(), // Short 8-character code for easy sharing
     players: [
       {
         id: playerId,
         name: playerName,
+        avatar,
         isReady: false,
       },
     ],
@@ -27,7 +37,7 @@ export function createRoom(playerId: string, playerName: string): Room {
 /**
  * Add a player to a room
  */
-export function addPlayerToRoom(room: Room, playerId: string, playerName: string): Room {
+export function addPlayerToRoom(room: Room, playerId: string, playerName: string, avatar?: string): Room {
   if (room.players.length >= 2) {
     throw new Error("Room is full");
   }
@@ -35,6 +45,7 @@ export function addPlayerToRoom(room: Room, playerId: string, playerName: string
   const newPlayer: Player = {
     id: playerId,
     name: playerName,
+    avatar,
     isReady: false,
   };
 
@@ -65,7 +76,7 @@ export function startNewRound(room: Room): Room {
   const roundNumber = room.currentRound + 1;
   const newRound: Round = {
     roundNumber,
-    moves: new Map(),
+    moves: {}, // Using object instead of Map for Socket.IO serialization
     state: "waiting",
   };
 
@@ -96,29 +107,33 @@ export function submitMove(room: Room, playerId: string, move: string): Room {
     throw new Error("Round has already finished");
   }
 
-  const updatedMoves = new Map(currentRound.moves);
-  updatedMoves.set(playerId, move as any);
+  // Using object spread instead of Map for Socket.IO serialization
+  const updatedMoves: Record<string, Move> = {
+    ...currentRound.moves,
+    [playerId]: move as Move,
+  };
 
   // Check if all players have submitted moves
-  const allPlayersSubmitted = room.players.every((p) => updatedMoves.has(p.id));
+  const allPlayersSubmitted = room.players.every((p) => playerId in updatedMoves || p.id in updatedMoves);
 
-  let newGamePhase = room.gamePhase;
-  let updatedRoundState = currentRound.state;
+  let newGamePhase: Room['gamePhase'] = room.gamePhase;
+  let updatedRoundState: Round['state'] = currentRound.state;
   let roundResult: RoundResult | undefined;
 
-  if (allPlayersSubmitted) {
+  if (allPlayersSubmitted && room.players.length === 2) {
     // Get the moves from both players
-    const player1Move = updatedMoves.get(room.players[0].id) as Move;
-    const player2Move = updatedMoves.get(room.players[1].id) as Move;
+    const player1Move = updatedMoves[room.players[0].id];
+    const player2Move = updatedMoves[room.players[1].id];
 
-    // Calculate the winner
-    roundResult = decideWinner(player1Move, player2Move);
-
-    (updatedRoundState as any) = "finished";
-    (newGamePhase as any) = "reveal";
+    if (player1Move && player2Move) {
+      // Calculate the winner
+      roundResult = decideWinner(player1Move, player2Move);
+      updatedRoundState = "finished";
+      newGamePhase = "reveal";
+    }
   }
 
-  const updatedRound = {
+  const updatedRound: Round = {
     ...currentRound,
     moves: updatedMoves,
     state: updatedRoundState,

@@ -11,6 +11,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@multiavatar/multiavatar": "^1.0.7",
     "@rock-paper-beer/game-logic": "file:../../packages/game-logic",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

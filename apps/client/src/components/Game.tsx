@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
 import { Room, Round, Move, MOVE_DISPLAY } from "@rock-paper-beer/game-logic";
+
+const MOVE_TIMEOUT_MS = 10000; // 10 seconds
 
 const Game: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -12,6 +14,8 @@ const Game: React.FC = () => {
   const [selectedMove, setSelectedMove] = useState<Move | null>(null);
   const [message, setMessage] = useState("");
   const [isStartingRound, setIsStartingRound] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!socket || !roomId) return;
@@ -28,24 +32,31 @@ const Game: React.FC = () => {
       setRoom(room);
     });
 
-    socket.on("roundStarted", ({ room }) => {
+    socket.on("roundStarted", ({ room, timeoutMs }) => {
       setRoom(room);
       setSelectedMove(null);
       setMessage("");
       setIsStartingRound(false);
+      // Start countdown timer
+      setTimeLeft(Math.ceil((timeoutMs || MOVE_TIMEOUT_MS) / 1000));
     });
 
-    socket.on("moveSubmitted", ({ room }) => {
+    socket.on("moveSubmitted", ({ room, timeout, playerId }) => {
       setRoom(room);
+      if (timeout && playerId) {
+        setMessage("Time's up! Random move submitted.");
+      }
     });
 
     socket.on("roundFinished", ({ room }) => {
       setRoom(room);
+      setTimeLeft(null); // Clear timer when round ends
     });
 
     socket.on("playerDisconnected", ({ playerId, room }) => {
       setRoom(room);
       setMessage("Opponent disconnected");
+      setTimeLeft(null);
     });
 
     socket.on("error", ({ message }) => {
@@ -63,6 +74,28 @@ const Game: React.FC = () => {
       socket.off("error");
     };
   }, [socket, roomId, room?.gamePhase]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => (prev !== null && prev > 0 ? prev - 1 : null));
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [timeLeft]);
 
   const startRound = () => {
     if (!socket || !roomId) return;
@@ -118,7 +151,8 @@ const Game: React.FC = () => {
   const renderMoveButtons = () => {
     const currentRound = getCurrentRound();
     const myIndex = getMyPlayerIndex();
-    const hasSubmitted = currentRound?.moves.has(socket?.id || "");
+    // Using object property access instead of Map.has() for serialized data
+    const hasSubmitted = currentRound?.moves && socket?.id ? socket.id in currentRound.moves : false;
 
     if (room?.gamePhase !== "round" || !currentRound || hasSubmitted) {
       return null;
@@ -127,6 +161,19 @@ const Game: React.FC = () => {
     return (
       <div>
         <h3>Choose Your Move:</h3>
+        {/* Countdown Timer */}
+        {timeLeft !== null && (
+          <div
+            style={{
+              fontSize: "2em",
+              color: timeLeft <= 3 ? "#ef4444" : "var(--accent-gold)",
+              marginBottom: "15px",
+              animation: timeLeft <= 3 ? "flash 0.5s infinite" : "none",
+            }}
+          >
+            ⏱️ {timeLeft}s
+          </div>
+        )}
         <div className="game-board">
           {(["rock", "paper", "beer"] as Move[]).map((move) => (
             <button
@@ -144,6 +191,24 @@ const Game: React.FC = () => {
     );
   };
 
+  // Render avatar from SVG string
+  const renderAvatar = (avatar?: string, size: number = 60) => {
+    if (!avatar) return null;
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          overflow: "hidden",
+          border: "2px solid var(--accent-gold)",
+          background: "var(--bg-light)",
+        }}
+        dangerouslySetInnerHTML={{ __html: avatar }}
+      />
+    );
+  };
+
   const renderGameStatus = () => {
     if (!room) return null;
 
@@ -156,20 +221,37 @@ const Game: React.FC = () => {
 
     return (
       <div style={{ marginBottom: "30px" }}>
-        <div className="player-status">
-          <h3>
-            {myPlayer?.name || "You"}
-            <span className="status-indicator connected"></span>
-          </h3>
-          {currentRound?.moves.has(socket?.id || "") && <p>Move submitted!</p>}
+        {/* Opponent area (top) */}
+        <div className="player-status" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+          {renderAvatar(opponent?.avatar)}
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: 0 }}>
+              {opponent?.name || "Waiting for opponent..."}
+              <span className={`status-indicator ${opponent ? "connected" : "waiting"}`}></span>
+            </h3>
+            {currentRound?.moves && opponent?.id && opponent.id in currentRound.moves && (
+              <p style={{ margin: "5px 0 0 0", fontSize: "12px" }}>Move submitted!</p>
+            )}
+          </div>
         </div>
 
-        <div className="player-status">
-          <h3>
-            {opponent?.name || "Waiting for opponent..."}
-            <span className={`status-indicator ${opponent ? "connected" : "waiting"}`}></span>
-          </h3>
-          {currentRound?.moves.has(opponent?.id || "") && <p>Move submitted!</p>}
+        {/* VS divider */}
+        <div style={{ textAlign: "center", margin: "15px 0", color: "var(--accent-gold)", fontSize: "1.5em" }}>
+          ⚔️ VS ⚔️
+        </div>
+
+        {/* Your area (bottom) */}
+        <div className="player-status" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+          {renderAvatar(myPlayer?.avatar)}
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: 0 }}>
+              {myPlayer?.name || "You"}
+              <span className="status-indicator connected"></span>
+            </h3>
+            {currentRound?.moves && socket?.id && socket.id in currentRound.moves && (
+              <p style={{ margin: "5px 0 0 0", fontSize: "12px" }}>Move submitted!</p>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -245,7 +327,14 @@ const Game: React.FC = () => {
   return (
     <div className="game-container game-screen">
       <h2>Room Code:</h2>
-      <div className="room-code">{roomId}</div>
+      <div className="room-code">{room.code || roomId}</div>
+      {room.code && (
+        <div style={{ marginTop: "10px", fontSize: "12px", color: "var(--text-secondary)" }}>
+          Share this link: <code style={{ background: "var(--bg-medium)", padding: "2px 4px", borderRadius: "4px" }}>
+            {window.location.origin}/join/{room.code}
+          </code>
+        </div>
+      )}
 
       {message && (
         <div

@@ -5,12 +5,14 @@ export type Move = 'rock' | 'paper' | 'beer';
 export interface Player {
   id: string;
   name: string;
+  avatar?: string; // SVG avatar string or image URL
   isReady: boolean;
 }
 
 // Room/game state
 export interface Room {
   id: string;
+  code: string; // Short 8-character code for easy sharing
   players: Player[];
   gamePhase: 'waiting' | 'playing' | 'round' | 'reveal' | 'finished';
   currentRound: number;
@@ -19,10 +21,10 @@ export interface Room {
   updatedAt: Date;
 }
 
-// Individual round
+// Individual round - using Record instead of Map for Socket.IO serialization
 export interface Round {
   roundNumber: number;
-  moves: Map<string, Move>; // playerId -> move
+  moves: Record<string, Move>; // playerId -> move (serializable)
   result?: RoundResult;
   state: 'waiting' | 'playing' | 'finished';
 }

@@ -15,8 +15,8 @@ export class RoomManager {
   /**
    * Create a new room
    */
-  createRoom(playerId: string, playerName: string): Room {
-    const room = createRoom(playerId, playerName);
+  createRoom(playerId: string, playerName: string, avatar?: string): Room {
+    const room = createRoom(playerId, playerName, avatar);
     this.rooms.set(room.id, room);
     return room;
   }
@@ -29,15 +29,28 @@ export class RoomManager {
   }
 
   /**
+   * Get a room by short code
+   */
+  getRoomByCode(code: string): Room | null {
+    const normalizedCode = code.toUpperCase();
+    for (const room of this.rooms.values()) {
+      if (room.code === normalizedCode) {
+        return room;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Join an existing room
    */
-  joinRoom(roomId: string, playerId: string, playerName: string): Room {
+  joinRoom(roomId: string, playerId: string, playerName: string, avatar?: string): Room {
     const room = this.getRoom(roomId);
     if (!room) {
       throw new Error("Room not found");
     }
 
-    const updatedRoom = addPlayerToRoom(room, playerId, playerName);
+    const updatedRoom = addPlayerToRoom(room, playerId, playerName, avatar);
     this.rooms.set(roomId, updatedRoom);
     return updatedRoom;
   }
