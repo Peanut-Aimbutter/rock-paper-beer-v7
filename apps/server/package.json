@@ -2,6 +2,7 @@
   "name": "@rock-paper-beer/server",
   "version": "1.0.0",
   "description": "Rock Paper Beer multiplayer server",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

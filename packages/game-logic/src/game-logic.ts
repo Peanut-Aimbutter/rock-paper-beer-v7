@@ -1,4 +1,4 @@
-import { Move, RoundResult } from './types';
+import { Move, RoundResult } from './types.js';
 
 /**
  * Determine the winner of a round based on Rock Paper Beer rules.

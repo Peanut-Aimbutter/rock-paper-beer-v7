@@ -3,7 +3,7 @@ import cors from "cors";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import Joi from "joi";
-import { RoomManager } from "./room-manager";
+import { RoomManager } from "./room-manager.js";
 import { GameEvent, Room, getRandomMove } from "@rock-paper-beer/game-logic";
 
 const PORT = process.env.PORT || 3001;

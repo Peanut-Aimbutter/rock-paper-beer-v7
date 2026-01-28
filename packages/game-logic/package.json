@@ -2,6 +2,7 @@
   "name": "@rock-paper-beer/game-logic",
   "version": "1.0.0",
   "description": "Shared game logic for Rock Paper Beer",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

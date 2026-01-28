@@ -1,6 +1,6 @@
-import { Room, Player, Round, Move, RoundResult } from "./types";
+import { Room, Player, Round, Move, RoundResult } from "./types.js";
 import { v4 as uuidv4 } from "uuid";
-import { decideWinner } from "./game-logic";
+import { decideWinner } from "./game-logic.js";
 
 /**
  * Generate a short, user-friendly room code
