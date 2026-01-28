@@ -5,7 +5,6 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "preinstall": "cd ../../packages/game-logic && npm run build",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
