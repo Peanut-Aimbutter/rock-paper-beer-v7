@@ -27,6 +27,14 @@ const io = new SocketIOServer(server, {
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from client build in production
+app.use(express.static('../../apps/client/dist'));
+
+// Fallback to index.html for SPA routing
+app.get('*', (req, res) => {
+  res.sendFile('../../apps/client/dist/index.html');
+});
+
 // Validation schemas
 const schemas = {
   createRoom: Joi.object({

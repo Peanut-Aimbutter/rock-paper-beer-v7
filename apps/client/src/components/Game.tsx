@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
-import { Room, Round, Move, MOVE_DISPLAY } from "@rock-paper-beer/game-logic";
+import { Room, Round, Move, Player, MOVE_DISPLAY } from "@rock-paper-beer/game-logic";
 
 const MOVE_TIMEOUT_MS = 10000; // 10 seconds
 
@@ -119,12 +119,12 @@ const Game: React.FC = () => {
 
   const getMyPlayerIndex = (): number => {
     if (!room || !socket) return -1;
-    return room.players.findIndex((p) => p.id === socket.id);
+    return room.players.findIndex((p: Player) => p.id === socket.id);
   };
 
   const getOpponent = () => {
     if (!room || !socket) return null;
-    return room.players.find((p) => p.id !== socket.id);
+    return room.players.find((p: Player) => p.id !== socket.id);
   };
 
   const getCurrentResult = () => {
