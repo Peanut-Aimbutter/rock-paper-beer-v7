@@ -24,7 +24,14 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   useEffect(() => {
     console.log("Initializing socket connection...");
 
-    const newSocket = io("http://localhost:3001", {
+    // Use environment variable or default to Firebase Cloud Functions
+    // For local development, set VITE_SOCKET_URL=http://localhost:3001
+    // For production, it will use the Firebase Hosting URL
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+
+    console.log(`Connecting to: ${socketUrl}`);
+
+    const newSocket = io(socketUrl, {
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,

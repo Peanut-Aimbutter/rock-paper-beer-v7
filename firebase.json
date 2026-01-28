@@ -1,0 +1,24 @@
+{
+  "hosting": {
+    "public": "apps/client/dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/socket.io/**",
+        "function": "api"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "functions": {
+    "source": "functions/src",
+    "runtime": "nodejs20"
+  }
+}

@@ -62,6 +62,15 @@ const schemas = {
 // Track active round timeouts
 const roundTimeouts = new Map<string, NodeJS.Timeout>();
 
+// Serve static client files in production
+if (process.env.NODE_ENV === "production") {
+  const path = require("path");
+  app.use(express.static(path.join(__dirname, "../../client/dist")));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../../client/dist/index.html"));
+  });
+}
+
 // Simple health check endpoint
 app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
