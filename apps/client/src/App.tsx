@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, useParams, Navigate } from 'react-router-dom';
+import { Routes, Route, useParams, useNavigate, Navigate } from 'react-router-dom';
 import { SocketProvider } from './contexts/SocketContext';
 import Lobby from './components/Lobby';
 import Game from './components/Game';
